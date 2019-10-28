@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<persistence xmlns="http://java.sun.com/xml/ns/persistence" version="1.0">
+	<persistence-unit name="pu1">
+		<jta-data-source>ShopEJB</jta-data-source>
+		<non-jta-data-source>ShopEJB</non-jta-data-source>
+	</persistence-unit>
+</persistence>

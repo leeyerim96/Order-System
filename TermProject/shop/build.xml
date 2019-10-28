@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="TermProject" default="all" basedir=".">
+	<property name="ear.deployed.name" value="TermProject"/>
+	<property name="source-dir" value="src" />
+	<property name="config-dir" value="config" />
+	<property name="output-dir" value="output" />
+	<property name="ear-dir" value="${output-dir}/comp_EJB" />
+    <property name="meta-dir" value="META-INF"/>
+
+	<property file="../CommonEnv/global.properties" />
+
+	<taskdef name="jwsc" classname="weblogic.wsee.tools.anttasks.JwscTask" />
+	<taskdef name="clientgen" classname="weblogic.wsee.tools.anttasks.ClientGenTask"/>
+	<taskdef name="wldeploy" classname="weblogic.ant.taskdefs.management.WLDeploy"/>
+	
+    <target name="all" depends="clean, build-ejb, build-servlet, package-ejb, ear, undeploy, deploy, build-client" />
+
+
+	<path id="lib.jwsc.id">
+		<pathelement path="${ear-dir}"/>
+	</path>
+
+
+	<path id="lib.servlet">
+		<pathelement path="output\comp_EJB"/>
+	</path>
+
+	<target name="clean">
+		<delete dir="${output-dir}"/>
+	</target>
+
+	<target name="build-ejb">
+		<mkdir dir="${ear-dir}" />
+    	<mkdir dir="output/src" />
+		<javac srcdir="${source-dir}" destdir="${ear-dir}" encoding="utf-8">
+			<include name="entity/*.java" />
+    		<include name="session/*.java"/>       
+    		<include name="mdb/*.java"/>    
+    		<include name="interface/*.java"/> 
+		</javac>
+	</target>
+
+	<target name="package-ejb" depends="build-ejb">
+        <jar jarfile="${output-dir}/src/${ear.deployed.name}_ejb.jar">
+			<fileset dir="${ear-dir}">
+          		<include name="examples/shop/logic/**"/>
+          		<include name="examples/shop/impl/entity/**"/>
+          		<include name="examples/shop/impl/mdb/**"/>
+	            <include name="examples/shop/impl/session/**"/>
+			</fileset>
+			<metainf dir="${meta-dir}">
+				<include name="persistence.xml" />
+			</metainf>
+		</jar>
+	</target>
+
+	<target name="build-servlet">
+		<mkdir dir="output" />
+		<mkdir dir="output/web/classes" />
+
+    	<javac srcdir="src/web/servlet" destdir="output/web/classes" encoding="UTF-8">
+        	<classpath refid="lib.servlet"/>
+    		<include name="*.java"/>
+    	</javac>
+
+	    <war destfile="output/src/${ear.deployed.name}_web.war" webxml="src/web/web.xml">
+            <lib dir="src/web/lib" />
+            <classes dir="output/web/classes" />
+            <fileset dir="src/web/jsp" />
+	    </war>
+    </target>
+
+    <target name="ear">
+        <ear destfile="output/${ear.deployed.name}.ear" appxml="${meta-dir}/application.xml">
+			<fileset dir="output/src"  />
+        </ear>
+    </target>
+
+	<target name="deploy">
+		<wldeploy
+			 action="deploy" upload="true"
+			 name="${ear.deployed.name}"
+			 source="${output-dir}/${ear.deployed.name}.ear"
+			 user="${wls.username}" password="${wls.password}" verbose="true"
+			 adminurl="t3://${wls.hostname}:${wls.port}"
+			 targets="${wls.server.name}" />
+	</target>
+
+	<target name="undeploy">
+		<wldeploy
+			 action="undeploy" name="${ear.deployed.name}"
+			 failonerror="false"
+			 user="${wls.username}" password="${wls.password}" verbose="true"
+			 adminurl="t3://${wls.hostname}:${wls.port}"
+			 targets="${wls.server.name}" />
+	</target>
+
+	<path id="client.class.path">
+		<pathelement path="${ear-dir}"/>
+		<pathelement path="${java.class.path}"/>
+	</path>
+	
+	<target name="build-client">
+		<mkdir dir="${ear-dir}" />
+		<javac srcdir="src/client" destdir="${ear-dir}" includes="SetupClient.java" encoding="UTF-8"/>
+	</target>
+	
+	<target name="initMail">
+		<javac srcdir="src/client" destdir="${ear-dir}" includes="LogClient.java" encoding="UTF-8"/>
+	</target>
+
+	<target name="run">
+		<java classname="client.SetupClient" fork="true" failonerror="true">
+			<classpath refid="client.class.path"/>
+		</java>
+	</target>
+
+	<target name="sendMail">
+		<java classname="client.LogClient" fork="true" failonerror="true">
+			<classpath refid="client.class.path"/>
+		</java>
+	</target>
+	
+</project>
